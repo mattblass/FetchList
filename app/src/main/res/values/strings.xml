@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">FetchList</string>
+    <string name="list_id_header">List ID</string>
+    <string name="name_header">Name</string>
+    <string name="sorted_asc_description">Sorted Ascending</string>
+    <string name="sorted_des_description">Sorted Descending</string>
+</resources>
