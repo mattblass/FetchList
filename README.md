@@ -8,4 +8,4 @@ This is using a HiltViewModel where data is processed as Flow data for use in th
 This includes some sorting functions to sort the data in different ways.
 
 The UI renders a table like layout with a header and row. The header cells are clickable to change the sorting of the table.
-The name field has a format of "Item <Int>" and so the name is parsed so the sorting can be based on the name and the Int in the name.
+The name field has a format of "Item N" and so the name is parsed so the sorting can be based on the name and the Int in the name.
