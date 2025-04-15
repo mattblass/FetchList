@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.comparisons.thenByDescending
 
 enum class SortOrder {
     ASC,
@@ -45,51 +46,34 @@ private fun nameFilter(listItems: List<ListItem>): List<ListItemNameFiltered> =
         }
     }
 
-private fun sortListIdAscending(): Comparator<ListItemNameFiltered> =
-    compareBy<ListItemNameFiltered> { it.listId }
-        .thenBy {
-            it.namePart
-        }.thenBy {
-            it.nameNumberPart
-        }
+private val nameComparator: (ListItemNameFiltered, ListItemNameFiltered) -> Int = { a, b ->
+    val partComparison = a.namePart.compareTo(b.namePart)
+    if (partComparison != 0) partComparison
+    else a.nameNumberPart.compareTo(b.nameNumberPart)
+}
 
-private fun sortListIdDescending(): Comparator<ListItemNameFiltered> =
-    compareByDescending<ListItemNameFiltered> { it.listId }
-        .thenBy {
-            it.namePart
-        }.thenBy {
-            it.nameNumberPart
-        }
+private val nameComparatorDesc: (ListItemNameFiltered, ListItemNameFiltered) -> Int = { a, b ->
+    val partComparison = b.namePart.compareTo(a.namePart)
+    if (partComparison != 0) partComparison
+    else b.nameNumberPart.compareTo(a.nameNumberPart)
+}
 
-private fun sortListNameAscending(): Comparator<ListItemNameFiltered> =
-    compareBy<ListItemNameFiltered> { it.listId }
-        .thenBy {
-            it.namePart
-        }.thenBy {
-            it.nameNumberPart
-        }
-
-private fun sortListNameDescending(): Comparator<ListItemNameFiltered> =
-    compareBy<ListItemNameFiltered> { it.listId }
-        .thenByDescending {
-            it.namePart
-        }.thenByDescending {
-            it.nameNumberPart
-        }
-
-private fun getSortListIdOrder(sortOrder: SortOrder): Comparator<ListItemNameFiltered> =
-    if (sortOrder == SortOrder.ASC) {
-        sortListIdAscending()
+private fun sort(
+    listIdSortOrder: SortOrder,
+    nameSortOrder: SortOrder
+): Comparator<ListItemNameFiltered> {
+    val listIdComparator = if (listIdSortOrder == SortOrder.ASC) {
+        compareBy<ListItemNameFiltered> { it.listId }
     } else {
-        sortListIdDescending()
+        compareByDescending { it.listId }
     }
 
-private fun getSortNameOrder(sortOrder: SortOrder): Comparator<ListItemNameFiltered> =
-    if (sortOrder == SortOrder.ASC) {
-        sortListNameAscending()
+    return if (nameSortOrder == SortOrder.ASC) {
+        listIdComparator.thenComparator(nameComparator)
     } else {
-        sortListNameDescending()
+        listIdComparator.thenComparator(nameComparatorDesc)
     }
+}
 
 @HiltViewModel
 class ListItemsViewModel @Inject constructor(
@@ -109,7 +93,7 @@ class ListItemsViewModel @Inject constructor(
         viewModelScope.launch(dispatcher) {
             _uiState.value = try {
                 _listItems.value = nameFilter(apiService.getList())
-                    .sortedWith(getSortListIdOrder(SortOrder.ASC))
+                    .sortedWith(sort(SortOrder.ASC, SortOrder.ASC))
                 ListItemsUiState.Success(
                     _listItems.value,
                     SortOrder.ASC,
@@ -129,12 +113,11 @@ class ListItemsViewModel @Inject constructor(
             when (uiState) {
                 is ListItemsUiState.Success -> {
                     uiState.sortListId.reverse().let { updatedOrder ->
-                        val sorted = _listItems.value.sortedWith(getSortListIdOrder(updatedOrder))
+                        val sorted = _listItems.value.sortedWith(sort(updatedOrder, uiState.sortName))
                         _listItems.value = sorted
-                        _uiState.value = ListItemsUiState.Success(
-                            _listItems.value,
-                            updatedOrder,
-                            SortOrder.ASC
+                        _uiState.value = uiState.copy(
+                            listItems = _listItems.value,
+                            sortListId = updatedOrder
                         )
                     }
                 }
@@ -150,12 +133,11 @@ class ListItemsViewModel @Inject constructor(
             when (uiState) {
                 is ListItemsUiState.Success -> {
                     uiState.sortName.reverse().let { updatedOrder ->
-                        val sorted = _listItems.value.sortedWith(getSortNameOrder(updatedOrder))
+                        val sorted = _listItems.value.sortedWith(sort(uiState.sortListId, updatedOrder))
                         _listItems.value = sorted
-                        _uiState.value = ListItemsUiState.Success(
-                            _listItems.value,
-                            SortOrder.ASC,
-                            updatedOrder
+                        _uiState.value = uiState.copy(
+                            listItems = _listItems.value,
+                            sortName = updatedOrder
                         )
                     }
                 }
