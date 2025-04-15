@@ -1,7 +1,5 @@
 package com.blass.fetchlist.data
 
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 
 data class ListItem(val id: Int, val listId: Int, val name: String?)
@@ -21,16 +19,4 @@ fun getNameParts(name: String): Pair<String, Int> {
 interface ListApiService {
     @GET("hiring.json")
     suspend fun getList(): List<ListItem>
-}
-
-private const val LIST_URL = "https://fetch-hiring.s3.amazonaws.com/"
-private val retrofit = Retrofit.Builder()
-    .baseUrl(LIST_URL)
-    .addConverterFactory(GsonConverterFactory.create())
-    .build()
-
-object ListApi {
-    val retrofitService: ListApiService by lazy {
-        retrofit.create(ListApiService::class.java)
-    }
 }

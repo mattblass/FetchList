@@ -2,7 +2,7 @@ package com.blass.fetchlist.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.blass.fetchlist.data.ListApi
+import com.blass.fetchlist.data.ListApiService
 import com.blass.fetchlist.data.ListItem
 import com.blass.fetchlist.data.ListItemNameFiltered
 import com.blass.fetchlist.data.getNameParts
@@ -88,7 +88,9 @@ private fun getSortNameOrder(sortOrder: SortOrder): Comparator<ListItemNameFilte
     }
 
 @HiltViewModel
-class ListItemsViewModel @Inject constructor() : ViewModel() {
+class ListItemsViewModel @Inject constructor(
+    private val apiService: ListApiService
+) : ViewModel() {
 
     private val _listItems = MutableStateFlow<List<ListItemNameFiltered>>(listOf())
     private val _uiState = MutableStateFlow<ListItemsUiState>(ListItemsUiState.Loading)
@@ -101,16 +103,16 @@ class ListItemsViewModel @Inject constructor() : ViewModel() {
     fun fetchList() {
         viewModelScope.launch {
             _uiState.value = try {
-                _listItems.value = nameFilter(ListApi.retrofitService.getList())
+                _listItems.value = nameFilter(apiService.getList())
                     .sortedWith(getSortListIdOrder(SortOrder.ASC))
                 ListItemsUiState.Success(
                     _listItems.value,
                     SortOrder.ASC,
                     SortOrder.ASC
                 )
-            } catch (e: IOException) {
+            } catch (_: IOException) {
                 ListItemsUiState.Error
-            } catch (e: HttpException) {
+            } catch (_: HttpException) {
                 ListItemsUiState.Error
             }
         }
