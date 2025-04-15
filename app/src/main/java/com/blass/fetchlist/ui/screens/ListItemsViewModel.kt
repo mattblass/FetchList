@@ -90,25 +90,23 @@ private fun getSortNameOrder(sortOrder: SortOrder): Comparator<ListItemNameFilte
 @HiltViewModel
 class ListItemsViewModel @Inject constructor() : ViewModel() {
 
-    private val _sortOrderListId = MutableStateFlow<SortOrder>(SortOrder.ASC)
-    private var _sortOrderName = MutableStateFlow<SortOrder>(SortOrder.ASC)
     private val _listItems = MutableStateFlow<List<ListItemNameFiltered>>(listOf())
     private val _uiState = MutableStateFlow<ListItemsUiState>(ListItemsUiState.Loading)
     val uiState: StateFlow<ListItemsUiState> = _uiState.asStateFlow()
 
     init {
-        getList()
+        fetchList()
     }
 
-    fun getList() {
+    fun fetchList() {
         viewModelScope.launch {
             _uiState.value = try {
                 _listItems.value = nameFilter(ListApi.retrofitService.getList())
-                    .sortedWith(getSortListIdOrder(_sortOrderListId.value))
+                    .sortedWith(getSortListIdOrder(SortOrder.ASC))
                 ListItemsUiState.Success(
                     _listItems.value,
-                    _sortOrderListId.value,
-                    _sortOrderName.value
+                    SortOrder.ASC,
+                    SortOrder.ASC
                 )
             } catch (e: IOException) {
                 ListItemsUiState.Error
@@ -120,42 +118,60 @@ class ListItemsViewModel @Inject constructor() : ViewModel() {
 
     fun sortListId() {
         viewModelScope.launch {
-            if (_sortOrderListId.value == SortOrder.ASC) {
-                _sortOrderListId.value = SortOrder.DESC
-                _sortOrderName.value = SortOrder.ASC
-            } else {
-                _sortOrderListId.value = SortOrder.ASC
-                _sortOrderName.value = SortOrder.ASC
+            var listIdSortOrder = SortOrder.ASC
+            var listNameSortOrder = SortOrder.ASC
+            val uiState = _uiState.value
+            when (uiState) {
+                is ListItemsUiState.Success -> {
+                    if (uiState.sortListId == SortOrder.ASC) {
+                        listIdSortOrder = SortOrder.DESC
+                        listNameSortOrder = SortOrder.ASC
+                    } else {
+                        listIdSortOrder = SortOrder.ASC
+                        listNameSortOrder = SortOrder.ASC
+                    }
+                }
+                ListItemsUiState.Error -> Unit
+                ListItemsUiState.Loading -> Unit
             }
 
             _listItems.value =
-                _listItems.value.sortedWith(getSortListIdOrder(_sortOrderListId.value))
+                _listItems.value.sortedWith(getSortListIdOrder(listIdSortOrder))
             _uiState.value =
                 ListItemsUiState.Success(
                     _listItems.value,
-                    _sortOrderListId.value,
-                    _sortOrderName.value
+                    listIdSortOrder,
+                    listNameSortOrder
                 )
         }
     }
 
     fun sortName() {
         viewModelScope.launch {
-            if (_sortOrderName.value == SortOrder.ASC) {
-                _sortOrderName.value = SortOrder.DESC
-                _sortOrderListId.value = SortOrder.ASC
-            } else {
-                _sortOrderName.value = SortOrder.ASC
-                _sortOrderListId.value = SortOrder.ASC
+            var listIdSortOrder = SortOrder.ASC
+            var listNameSortOrder = SortOrder.ASC
+            val uiState = _uiState.value
+            when (uiState) {
+                is ListItemsUiState.Success -> {
+                    if (uiState.sortName == SortOrder.ASC) {
+                        listIdSortOrder = SortOrder.ASC
+                        listNameSortOrder = SortOrder.DESC
+                    } else {
+                        listIdSortOrder = SortOrder.ASC
+                        listNameSortOrder = SortOrder.ASC
+                    }
+                }
+                ListItemsUiState.Error -> Unit
+                ListItemsUiState.Loading -> Unit
             }
 
             _listItems.value =
-                _listItems.value.sortedWith(getSortNameOrder(_sortOrderName.value))
+                _listItems.value.sortedWith(getSortNameOrder(listNameSortOrder))
             _uiState.value =
                 ListItemsUiState.Success(
                     _listItems.value,
-                    _sortOrderListId.value,
-                    _sortOrderName.value
+                    listIdSortOrder,
+                    listNameSortOrder
                 )
         }
     }
