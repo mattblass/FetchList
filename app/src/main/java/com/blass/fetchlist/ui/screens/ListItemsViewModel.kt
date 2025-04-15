@@ -20,6 +20,8 @@ enum class SortOrder {
     DESC
 }
 
+fun SortOrder.reverse(): SortOrder = if (this == SortOrder.ASC) SortOrder.DESC else SortOrder.ASC
+
 sealed interface ListItemsUiState {
     data class Success(
         val listItems: List<ListItemNameFiltered>,
@@ -120,61 +122,45 @@ class ListItemsViewModel @Inject constructor(
 
     fun sortListId() {
         viewModelScope.launch {
-            var listIdSortOrder = SortOrder.ASC
-            var listNameSortOrder = SortOrder.ASC
             val uiState = _uiState.value
             when (uiState) {
                 is ListItemsUiState.Success -> {
-                    if (uiState.sortListId == SortOrder.ASC) {
-                        listIdSortOrder = SortOrder.DESC
-                        listNameSortOrder = SortOrder.ASC
-                    } else {
-                        listIdSortOrder = SortOrder.ASC
-                        listNameSortOrder = SortOrder.ASC
+                    uiState.sortListId.reverse().let { updatedOrder ->
+                        _listItems.value =
+                            _listItems.value.sortedWith(getSortListIdOrder(updatedOrder))
+                        _uiState.value =
+                            ListItemsUiState.Success(
+                                _listItems.value,
+                                updatedOrder,
+                                SortOrder.ASC
+                            )
                     }
                 }
                 ListItemsUiState.Error -> Unit
                 ListItemsUiState.Loading -> Unit
             }
-
-            _listItems.value =
-                _listItems.value.sortedWith(getSortListIdOrder(listIdSortOrder))
-            _uiState.value =
-                ListItemsUiState.Success(
-                    _listItems.value,
-                    listIdSortOrder,
-                    listNameSortOrder
-                )
         }
     }
 
     fun sortName() {
         viewModelScope.launch {
-            var listIdSortOrder = SortOrder.ASC
-            var listNameSortOrder = SortOrder.ASC
             val uiState = _uiState.value
             when (uiState) {
                 is ListItemsUiState.Success -> {
-                    if (uiState.sortName == SortOrder.ASC) {
-                        listIdSortOrder = SortOrder.ASC
-                        listNameSortOrder = SortOrder.DESC
-                    } else {
-                        listIdSortOrder = SortOrder.ASC
-                        listNameSortOrder = SortOrder.ASC
+                    uiState.sortName.reverse().let { updatedOrder ->
+                        _listItems.value =
+                            _listItems.value.sortedWith(getSortNameOrder(updatedOrder))
+                        _uiState.value =
+                            ListItemsUiState.Success(
+                                _listItems.value,
+                                SortOrder.ASC,
+                                updatedOrder
+                            )
                     }
                 }
                 ListItemsUiState.Error -> Unit
                 ListItemsUiState.Loading -> Unit
             }
-
-            _listItems.value =
-                _listItems.value.sortedWith(getSortNameOrder(listNameSortOrder))
-            _uiState.value =
-                ListItemsUiState.Success(
-                    _listItems.value,
-                    listIdSortOrder,
-                    listNameSortOrder
-                )
         }
     }
 }
