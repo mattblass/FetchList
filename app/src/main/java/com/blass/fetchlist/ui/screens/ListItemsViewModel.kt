@@ -7,6 +7,8 @@ import com.blass.fetchlist.data.ListItem
 import com.blass.fetchlist.data.ListItemNameFiltered
 import com.blass.fetchlist.data.getNameParts
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,7 +93,8 @@ private fun getSortNameOrder(sortOrder: SortOrder): Comparator<ListItemNameFilte
 
 @HiltViewModel
 class ListItemsViewModel @Inject constructor(
-    private val apiService: ListApiService
+    private val apiService: ListApiService,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     private val _listItems = MutableStateFlow<List<ListItemNameFiltered>>(listOf())
@@ -103,7 +106,7 @@ class ListItemsViewModel @Inject constructor(
     }
 
     fun fetchList() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             _uiState.value = try {
                 _listItems.value = nameFilter(apiService.getList())
                     .sortedWith(getSortListIdOrder(SortOrder.ASC))
@@ -126,14 +129,13 @@ class ListItemsViewModel @Inject constructor(
             when (uiState) {
                 is ListItemsUiState.Success -> {
                     uiState.sortListId.reverse().let { updatedOrder ->
-                        _listItems.value =
-                            _listItems.value.sortedWith(getSortListIdOrder(updatedOrder))
-                        _uiState.value =
-                            ListItemsUiState.Success(
-                                _listItems.value,
-                                updatedOrder,
-                                SortOrder.ASC
-                            )
+                        val sorted = _listItems.value.sortedWith(getSortListIdOrder(updatedOrder))
+                        _listItems.value = sorted
+                        _uiState.value = ListItemsUiState.Success(
+                            _listItems.value,
+                            updatedOrder,
+                            SortOrder.ASC
+                        )
                     }
                 }
                 ListItemsUiState.Error -> Unit
@@ -148,14 +150,13 @@ class ListItemsViewModel @Inject constructor(
             when (uiState) {
                 is ListItemsUiState.Success -> {
                     uiState.sortName.reverse().let { updatedOrder ->
-                        _listItems.value =
-                            _listItems.value.sortedWith(getSortNameOrder(updatedOrder))
-                        _uiState.value =
-                            ListItemsUiState.Success(
-                                _listItems.value,
-                                SortOrder.ASC,
-                                updatedOrder
-                            )
+                        val sorted = _listItems.value.sortedWith(getSortNameOrder(updatedOrder))
+                        _listItems.value = sorted
+                        _uiState.value = ListItemsUiState.Success(
+                            _listItems.value,
+                            SortOrder.ASC,
+                            updatedOrder
+                        )
                     }
                 }
                 ListItemsUiState.Error -> Unit
